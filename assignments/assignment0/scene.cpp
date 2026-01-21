@@ -11,10 +11,25 @@
 // batteries
 #include "batteries/opengl.h"
 
+glm::mat4 lightMatrix = glm::mat4(1.0f);
+glm::vec3 lightColor = glm::vec3(1.0f);
+
+struct{
+    float alpha = 128.0f;
+} debug;
+
 Scene::Scene()
 {
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
-    blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/default.fs");
+    blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/blinnphong.fs");
+
+        light = {
+        .brightness = 1.0f,
+        .color = {1.0f, 0.0f, 1.0f},
+        .position = {2.0f, 2.0f, 2.0f},
+    };
+
+    lightColor = light.color;
 }
 
 Scene::~Scene()
@@ -47,7 +62,14 @@ void Scene::Render(void)
     // scene matrices
     blinnphong->setMat4("model", matrix);
     blinnphong->setMat4("view_proj", view_proj);
-    blinnphong->setVec3("camera_position", camera.position);
+    blinnphong->setVec3("camera", camera.position);
+    blinnphong->setVec3("light.position", light.position);
+    blinnphong->setVec3("light.color", light.color);
+    blinnphong->setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+    blinnphong->setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+    blinnphong->setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+    blinnphong->setFloat("material.shininess", 32.0f);
+    blinnphong->setFloat("alpha", debug.alpha);
 
     // draw suzanne
     suzanne->draw();
@@ -79,6 +101,7 @@ void Scene::Debug(void)
 
     ImGui::Checkbox("Paused", &time.paused);
     ImGui::SliderFloat("Time Factor", &time.factor, 0.0f, 10.0f);
+    ImGui::SliderFloat("Lighting", &lightColor[0], 0.0f, 10.0f);
 
     /* build debug ui here */
 
