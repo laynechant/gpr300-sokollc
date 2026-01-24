@@ -16,6 +16,11 @@ glm::vec3 lightColor = glm::vec3(1.0f);
 
 struct{
     float alpha = 128.0f;
+    glm::vec3  ambient = {1.0f, 1.0f, 1.0f};
+    glm::vec3  diffuse = {0.5f, 0.5f, 0.5f};
+    glm::vec3  specular = {0.5f, 0.5f, 0.5f};
+
+
 } debug;
 
 Scene::Scene()
@@ -47,6 +52,12 @@ auto matrix = glm::mat4(1.0f);
 
 void Scene::Render(void)
 {
+    /*
+        Todo: 
+        1. Apply material effects onto Sussane
+        2. Add Imgui sliders for the effects
+         
+     */
     const auto view_proj = camera.Projection() * camera.View();
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -65,9 +76,9 @@ void Scene::Render(void)
     blinnphong->setVec3("camera", camera.position);
     blinnphong->setVec3("light.position", light.position);
     blinnphong->setVec3("light.color", light.color);
-    blinnphong->setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
-    blinnphong->setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
-    blinnphong->setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+    blinnphong->setVec3("material.ambient", debug.ambient);
+    blinnphong->setVec3("material.diffuse", debug.diffuse);
+    blinnphong->setVec3("material.specular", debug.specular);
     blinnphong->setFloat("material.shininess", 32.0f);
     blinnphong->setFloat("alpha", debug.alpha);
 
@@ -90,10 +101,15 @@ void Scene::Debug(void)
     ImGuizmo::Manipulate(
         view,
         proj,
-        ImGuizmo::ROTATE,
+        ImGuizmo::TRANSLATE,
         ImGuizmo::WORLD,
-        glm::value_ptr(matrix)
+        glm::value_ptr(lightMatrix)
     );
+
+    if(ImGuizmo::IsUsing())
+    {
+        light.position = glm::vec3(lightMatrix[3]);
+    }
 
     cameracontroller.Debug();
 
@@ -101,9 +117,12 @@ void Scene::Debug(void)
 
     ImGui::Checkbox("Paused", &time.paused);
     ImGui::SliderFloat("Time Factor", &time.factor, 0.0f, 10.0f);
-    ImGui::SliderFloat("Lighting", &lightColor[0], 0.0f, 10.0f);
+    ImGui::ColorEdit3("Light Color", &lightColor.x);
 
     /* build debug ui here */
 
+    ImGui::SliderFloat3("Ambient", &debug.ambient[0], 0.01f, 1.0f);
+    ImGui::SliderFloat3("Diffuse", &debug.diffuse[0], 0.01f, 1.0f);
+    ImGui::SliderFloat3("Specular", &debug.specular[0], 0.01f, 1.0f);
     ImGui::End();
 }
