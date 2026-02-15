@@ -50,7 +50,7 @@ vec3 toon(vec3 normal, vec3 frag_pos, Light light) {
   specular = pow(specular, alpha * material.shininess);
 
   float NdotL = (dot(normal, light_dir) * 1.0) * 0.5;
-  //float NdotH = (dot(normal, light_dir) * 1.0) * 0.5;
+  //float NdotH = (dot(normal, light_dir) + 1.0) * 0.5;
 
   vec3 gradient = texture(zatoon, vec2(NdotL, NdotL)).rgb;
 
@@ -68,9 +68,10 @@ vec3 toon(vec3 normal, vec3 frag_pos, Light light) {
 void main()
 {
   vec3 lighting = toon(vs_normal, vs_position, light);
-  vec3 object_color = vs_normal.rgb * 0.5 + 0.5;
-  vec3 result = lighting * object_color;
+  //vec3 object_color = vs_normal.rgb * 0.5 + 0.5;
+  vec3 final_color = lighting + material.ambient;
+  //vec3 result = lighting * object_color;
   
-  //FragColor = vec4(result, 1.0);
+  //FragColor = vec4(final_color, 1.0);
   FragColor = texture(_MainTex, vs_texcoord);
 }

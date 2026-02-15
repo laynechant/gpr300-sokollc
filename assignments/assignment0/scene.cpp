@@ -27,7 +27,6 @@ struct{
 
 Scene::Scene()
 {
-    //suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
     blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/blinnphong.fs");
 
@@ -36,10 +35,6 @@ Scene::Scene()
         .color = {1.0f, 0.0f, 1.0f},
         .position = {2.0f, 2.0f, 2.0f},
     };
-
-    
-
-
 
     lightColor = light.color;
 }
@@ -59,12 +54,7 @@ auto matrix = glm::mat4(1.0f);
 
 void Scene::Render(void)
 {
-    /*
-        Todo: 
-        1. Apply material effects onto Sussane
-        2. Add Imgui sliders for the effects
-         
-     */
+    
     const auto view_proj = camera.Projection() * camera.View();
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -73,11 +63,7 @@ void Scene::Render(void)
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST);
-    // glDisable(GL_DEPTH_TEST);
 
-    
-    //glActiveTexture(GL_Te)
-    //glBindTexture()
     blinnphong->use();
 
 

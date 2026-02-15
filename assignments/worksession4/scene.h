@@ -23,8 +23,10 @@ class Scene final : public batteries::Scene
   private:
     std::unique_ptr<ew::Model> suzanne;
     std::unique_ptr<ew::Shader> toon;
+    std::unique_ptr<ew::Shader> postprocess;
 
     ew::Texture  toonTexture = ew::Texture("assets/textures/ZAtoon.png");
+    ew::Texture  brickTexture = ew::Texture("assets/textures/bricks.jpg");
     
     batteries::light_t light;
 
@@ -37,5 +39,6 @@ class Scene final : public batteries::Scene
     GLuint frameBuffer;
 
     GLuint fboTexture; 
+    GLuint fboDepth;
     
 };

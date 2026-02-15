@@ -27,6 +27,46 @@ struct{
 
 } debug;
 
+
+struct FullScreenQuad
+{
+    GLuint vao; 
+    GLuint vbo; 
+
+    void Initalize()
+    {
+        float vertices[] = {
+            // pos (x,y), texcoord {u,v}
+           // triangle 1
+            -1.0f, 1.0f, 0.0f, 1.0f,   
+            -1.0f, -1.0f, 0.0f, 0.0f,
+            1.0f, -1.0f, 1.0f, 0.0f,
+
+            // triangle 2
+            -1.0f, 1.0f, 0.0f, 1.0f,
+            1.0f, -1.0f, 1.0f, 0.0f,
+            1.0f, 1.0f, 1.0f, 1.0f,
+        };
+
+        glGenVertexArrays(1, &vao);
+        glGenBuffers(1, &vbo);
+
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0 , 2 , GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1 , 2 , GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(sizeof(float) * 2));
+
+        glBindVertexArray(0);
+    }
+
+} fullscreen_quad;
+
 Scene::Scene()
 {
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
@@ -38,7 +78,9 @@ Scene::Scene()
         .position = {2.0f, 2.0f, 2.0f},
     };
 
-    //ew::Texture brickTexture = ew::Texture("assets/brick_color.jpg");
+    //ew::Texture brickTexture = ew::Texture("assets/textures/bricks.jpg");
+
+    postprocess  = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/blur.fs");
     
 
     pallete = {
@@ -46,6 +88,8 @@ Scene::Scene()
         .color2 = {0.0f, 1.0f, 1.0f}
 
     };
+
+    fullscreen_quad.Initalize();
 
     // frame buffer setup
     glCreateFramebuffers(1, &frameBuffer);
@@ -58,9 +102,21 @@ Scene::Scene()
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+          glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fboTexture, 0);  
+
+        glGenTextures(1, &fboDepth);
+        glBindTexture(GL_TEXTURE_2D, fboDepth);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, 800, 600, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+          glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, fboDepth, 0);  
+
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fboTexture, 0);  
+  
 
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -92,9 +148,10 @@ auto matrix = glm::mat4(1.0f);
 
 void Scene::Render(void)
 {
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+   
     glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+
+    //glBindFramebuffer(GL_FRAMEBUFFER, depthBuffer)
     /*
         Todo: 
         1. Apply material effects onto Sussane
@@ -113,7 +170,7 @@ void Scene::Render(void)
 
     
    glActiveTexture(GL_TEXTURE0);
-   glBindTexture(GL_TEXTURE_2D, toonTexture.getID());
+   glBindTexture(GL_TEXTURE_2D, brickTexture.getID());
 
     toon->use();
 
@@ -138,6 +195,24 @@ void Scene::Render(void)
     suzanne->draw();
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+   {
+    
+    postprocess->use();
+    postprocess->setInt("screen", 0);
+ 
+
+    glDisable(GL_DEPTH_TEST);
+
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glBindVertexArray(fullscreen_quad.vao);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, fboTexture);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    }
 }
 
 void Scene::Debug(void)
@@ -184,7 +259,11 @@ void Scene::Debug(void)
     
 
      ImGui::Image(
-        (void*)(intptr_t)fboTexture,
+        //(void*)(intptr_t)fboTexture,
+        //ImVec2(400, 300),
+        //ImVec2(0, 1), ImVec2(1, 0));
+
+        (void*)(intptr_t)fboDepth,
         ImVec2(400, 300),
         ImVec2(0, 1), ImVec2(1, 0));
     ImGui::End();
