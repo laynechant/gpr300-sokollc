@@ -1,3 +1,6 @@
+// batteries
+#include "batteries/opengl.h"
+
 #include "scene.h"
 
 // imgui
@@ -8,10 +11,9 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-// batteries
-#include "batteries/opengl.h"
 
 #include "ew/texture.h"
+
 
 glm::mat4 lightMatrix = glm::mat4(1.0f);
 glm::vec3 lightColor = glm::vec3(1.0f);
@@ -37,6 +39,11 @@ Scene::Scene()
     };
 
     lightColor = light.color;
+
+    fboDepth = 0;
+
+    //frameBuffer = bob::createFramebuffer(800, 600, GL_RGB16F, fboDepth);
+
 }
 
 Scene::~Scene()
@@ -57,6 +64,7 @@ void Scene::Render(void)
     
     const auto view_proj = camera.Projection() * camera.View();
 
+    //glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer.fbo);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -64,7 +72,15 @@ void Scene::Render(void)
     glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST);
 
+    // set it back to default
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     blinnphong->use();
+
+    
+
 
 
     glActiveTexture(GL_TEXTURE0);

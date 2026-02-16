@@ -8,6 +8,7 @@
 #include "ew/model.h"
 #include "ew/shader.h"
 #include "ew/texture.h"
+#include "../libs/bob/framebuffer.h"
 
 class Scene final : public batteries::Scene
 {
@@ -26,4 +27,9 @@ class Scene final : public batteries::Scene
     batteries::light_t light;
 
     ew::Texture  brickTexture = ew::Texture("assets/textures/bricks.jpg");
+
+    unsigned int fboTexture; 
+    unsigned int fboDepth;
+
+    //bob::Framebuffer frameBuffer;
 };
