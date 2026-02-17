@@ -194,6 +194,7 @@ void Scene::Render(void)
     // draw suzanne
     suzanne->draw();
 
+    
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
    {

@@ -27,10 +27,49 @@ struct{
 
 } debug;
 
+struct FullScreenQuad
+{
+    GLuint vao; 
+    GLuint vbo; 
+
+    void Initalize()
+    {
+        float vertices[] = {
+            // pos (x,y), texcoord {u,v}
+           // triangle 1
+            -1.0f, 1.0f, 0.0f, 1.0f,   
+            -1.0f, -1.0f, 0.0f, 0.0f,
+            1.0f, -1.0f, 1.0f, 0.0f,
+
+            // triangle 2
+            -1.0f, 1.0f, 0.0f, 1.0f,
+            1.0f, -1.0f, 1.0f, 0.0f,
+            1.0f, 1.0f, 1.0f, 1.0f,
+        };
+
+        glGenVertexArrays(1, &vao);
+        glGenBuffers(1, &vbo);
+
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0 , 2 , GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1 , 2 , GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(sizeof(float) * 2));
+
+        glBindVertexArray(0);
+    }
+
+} fullscreen_quad;
+
 Scene::Scene()
 {
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
-    blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/blinnphong.fs");
+    blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/toon.fs");
 
         light = {
         .brightness = 1.0f,
@@ -38,11 +77,83 @@ Scene::Scene()
         .position = {2.0f, 2.0f, 2.0f},
     };
 
+    blurEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/sharpen.fs");
+    hdrEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/hdr.fs");
+
     lightColor = light.color;
 
-    fboDepth = 0;
 
-    //frameBuffer = bob::createFramebuffer(800, 600, GL_RGB16F, fboDepth);
+    pallete = {
+        .color1 = { 1.0f, 0.0f, 1.0f},
+        .color2 = {0.0f, 1.0f, 1.0f}
+
+    };
+
+
+    fullscreen_quad.Initalize();
+
+    // Set up our frame buffer
+    //effects to do
+    // Blur - done
+    // Edge Detection - done
+    // greyscale - done
+    // sharpen - done
+    // Hdr tone mapping - done
+    // Gamma Correction
+    // Chromatic Aberration
+    // Vignette
+    // Lens Distorion
+    // film grain
+    // Screen space fog
+    // Bloom
+
+    glCreateFramebuffers(1, &frameBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+    
+    {
+        glGenTextures(1, &fboTexture);
+        glBindTexture(GL_TEXTURE_2D, fboTexture);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fboTexture, 0);  
+
+        // color buffer
+        glGenTextures(1, &colorBuffer);
+        glBindTexture(GL_TEXTURE_2D, colorBuffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 800, 600, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0); 
+
+        // depth buffer
+        glGenTextures(1, &fboDepth);
+        glBindTexture(GL_TEXTURE_2D, fboDepth);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, 800, 600, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+       
+        
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, fboDepth, 0);  
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+  
+
+
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+
+        //return;
+    }
+	    
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 }
 
@@ -62,9 +173,13 @@ auto matrix = glm::mat4(1.0f);
 void Scene::Render(void)
 {
     
+    
+
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+   
+
     const auto view_proj = camera.Projection() * camera.View();
 
-    //glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer.fbo);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -72,22 +187,19 @@ void Scene::Render(void)
     glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST);
 
-    // set it back to default
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    blinnphong->use();
-
-    
-
-
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, brickTexture.getID());
+
+
+    blinnphong->use();
     blinnphong->setInt("_MainTex", 0);
 
     // scene matrices
+    blinnphong->setInt("zatoon", 1);
     blinnphong->setMat4("model", matrix);
     blinnphong->setMat4("view_proj", view_proj);
     blinnphong->setVec3("camera", camera.position);
@@ -98,9 +210,40 @@ void Scene::Render(void)
     blinnphong->setVec3("material.specular", debug.specular);
     blinnphong->setFloat("material.shininess", 32.0f);
     blinnphong->setFloat("alpha", debug.alpha);
+    blinnphong->setVec3("pallete.color1", pallete.color1);
+    blinnphong->setVec3("pallete.color1", pallete.color2);
+
+    blinnphong->setFloat("material.shininess", 32.0f);
+    blinnphong->setFloat("alpha", debug.alpha);
+
 
     // draw suzanne
     suzanne->draw();
+
+    // for the full screen quad
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    {
+     
+        // blurEffect->use();
+        // blurEffect->setInt("screen", 0);
+
+        glDisable(GL_DEPTH_TEST);
+    
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+        glBindVertexArray(fullscreen_quad.vao);
+
+        hdrEffect->use();
+        hdrEffect->setInt("hdrBuffer", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, colorBuffer);
+        // glActiveTexture(GL_TEXTURE0);
+        // glBindTexture(GL_TEXTURE_2D, fboTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+ 
+     }
 }
 
 void Scene::Debug(void)
@@ -143,5 +286,14 @@ void Scene::Debug(void)
     ImGui::SliderFloat3("Ambient", &debug.ambient[0], 0.01f, 1.0f);
     ImGui::SliderFloat3("Diffuse", &debug.diffuse[0], 0.01f, 1.0f);
     ImGui::SliderFloat3("Specular", &debug.specular[0], 0.01f, 1.0f);
+
+    ImGui::Image(
+        // (void*)(intptr_t)fboTexture,
+        // ImVec2(400, 300),
+        // ImVec2(0, 1), ImVec2(1, 0));
+
+        (void*)(intptr_t)fboDepth,
+        ImVec2(400, 300),
+        ImVec2(0, 1), ImVec2(1, 0));
     ImGui::End();
 }

@@ -28,9 +28,9 @@ const vec2 offsets[9] = vec2[](
 );
 
  const float kernel[9] = float[]( 
-  1.0f, 1.0f, 1.0f,
-  1.0f, -8.0f, 1.0f,
-  1.0f, 1.0f, 1.0f
+ -1.0f, -1.0f, -1.0f,
+ -1.0f,  9.0f, -1.0f,
+ -1.0f, -1.0f, -1.0f
   );
 
 
@@ -46,6 +46,6 @@ void main()
   }
 
   //float gray = (color.r + color.g + color.b) / 3.0; 
-  float average = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
-  FragColor = vec4(vec3(average), 1.0);
+  
+  FragColor = vec4(color, 1.0);
 }
