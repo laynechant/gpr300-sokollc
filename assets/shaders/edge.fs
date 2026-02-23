@@ -36,8 +36,7 @@ const vec2 offsets[9] = vec2[](
 
 void main()
 {
- 
-  //vec3 color = texture(screen, vs_texcoord).rgb; 
+
   vec3 color = vec3(0.0,0.0,0.0); 
   for(int i = 0; i < 9; i++)
   {
@@ -45,7 +44,6 @@ void main()
     color += local * kernel[i];
   }
 
-  //float gray = (color.r + color.g + color.b) / 3.0; 
   float average = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
   FragColor = vec4(vec3(average), 1.0);
 }

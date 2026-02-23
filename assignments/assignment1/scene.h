@@ -27,6 +27,12 @@ class Scene final : public batteries::Scene
     // Post processing effects
     std::unique_ptr<ew::Shader> blurEffect;
     std::unique_ptr<ew::Shader> hdrEffect;
+    std::unique_ptr<ew::Shader> sharpenEffect;
+    std::unique_ptr<ew::Shader> edgeDetEffect;
+    std::unique_ptr<ew::Shader> greyScaleEffect;
+    std::unique_ptr<ew::Shader> vignetteEffect;
+    std::unique_ptr<ew::Shader> lensDistEffect;
+    std::unique_ptr<ew::Shader> filmGrainEffect;
     
     batteries::light_t light;
 
@@ -36,13 +42,23 @@ class Scene final : public batteries::Scene
       glm::vec3 color2;
     }pallete;
 
-    ew::Texture  brickTexture = ew::Texture("assets/textures/bricks.jpg");
+    std::unique_ptr<ew::Texture>  brickTexture;
     unsigned int frameBuffer;
-    unsigned int fboTexture; 
     unsigned int fboDepth;
 
     unsigned int hdrFBO;
     unsigned int colorBuffer;
 
-    //bob::Framebuffer frameBuffer;
+    float filmGrainStrength;
+    float lensDistStrength; 
+    float blurStrength;
+
+    bool isBlurEnabled;
+    bool isHdrEnabled;
+    bool isvignetteEnabled;
+    bool isLensDistEnabled;
+    bool isFilmGrainEnabled;
+    bool isSharpenEnabled;
+    bool isEdgeEnabled;
+    bool isGreyScaleEnabled;
 };

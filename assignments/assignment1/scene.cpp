@@ -14,6 +14,8 @@
 
 #include "ew/texture.h"
 
+#include <filesystem>
+
 
 glm::mat4 lightMatrix = glm::mat4(1.0f);
 glm::vec3 lightColor = glm::vec3(1.0f);
@@ -68,7 +70,10 @@ struct FullScreenQuad
 
 Scene::Scene()
 {
+    std::filesystem::current_path("C:/Users/layne/Desktop/Graphics/gpr300-sokollc");
+
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
+
     blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/toon.fs");
 
         light = {
@@ -77,8 +82,16 @@ Scene::Scene()
         .position = {2.0f, 2.0f, 2.0f},
     };
 
-    blurEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/sharpen.fs");
+    blurEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/blur.fs");
     hdrEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/hdr.fs");
+    sharpenEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/sharpen.fs");
+    edgeDetEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/edge.fs");
+    greyScaleEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/greyscale.fs");
+    vignetteEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/vignette.fs");
+    lensDistEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/lensdistortion.fs");
+    filmGrainEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/filmgrain.fs");
+
+    brickTexture = std::make_unique<ew::Texture>("assets/textures/bricks.jpg");
 
     lightColor = light.color;
 
@@ -89,36 +102,25 @@ Scene::Scene()
 
     };
 
+    isBlurEnabled = false;
+    isHdrEnabled = false;
+    isvignetteEnabled = false; 
+    isLensDistEnabled = false; 
+    isFilmGrainEnabled = false; 
+    isSharpenEnabled = false; 
+    isEdgeEnabled = false; 
+    isGreyScaleEnabled = false;
 
-    fullscreen_quad.Initalize();
+    filmGrainStrength = 0.5f;
+    lensDistStrength = 1.5f;
+    blurStrength = 16.0f;
 
-    // Set up our frame buffer
-    //effects to do
-    // Blur - done
-    // Edge Detection - done
-    // greyscale - done
-    // sharpen - done
-    // Hdr tone mapping - done
-    // Gamma Correction
-    // Chromatic Aberration
-    // Vignette
-    // Lens Distorion
-    // film grain
-    // Screen space fog
-    // Bloom
-
+    fullscreen_quad.Initalize();    
+   
     glCreateFramebuffers(1, &frameBuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
     
     {
-        glGenTextures(1, &fboTexture);
-        glBindTexture(GL_TEXTURE_2D, fboTexture);
-
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fboTexture, 0);  
 
         // color buffer
         glGenTextures(1, &colorBuffer);
@@ -142,18 +144,15 @@ Scene::Scene()
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-  
-
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     {
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-
-        //return;
     }
 	    
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 
 }
 
@@ -173,8 +172,6 @@ auto matrix = glm::mat4(1.0f);
 void Scene::Render(void)
 {
     
-    
-
     glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
    
 
@@ -192,7 +189,7 @@ void Scene::Render(void)
     glClear(GL_COLOR_BUFFER_BIT);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, brickTexture.getID());
+    glBindTexture(GL_TEXTURE_2D, brickTexture->getID());
 
 
     blinnphong->use();
@@ -216,7 +213,7 @@ void Scene::Render(void)
     blinnphong->setFloat("material.shininess", 32.0f);
     blinnphong->setFloat("alpha", debug.alpha);
 
-
+    
     // draw suzanne
     suzanne->draw();
 
@@ -224,9 +221,59 @@ void Scene::Render(void)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     {
-     
-        // blurEffect->use();
-        // blurEffect->setInt("screen", 0);
+        if(isBlurEnabled)
+        { 
+
+            blurEffect->use();
+            blurEffect->setInt("screen", 0);
+            blurEffect->setFloat("strength", blurStrength);
+        }
+
+        else if (isHdrEnabled)
+        {
+             hdrEffect->use();
+             hdrEffect->setInt("hdrBuffer", 0);
+        }
+
+        else if (isSharpenEnabled)
+        {
+            sharpenEffect->use();
+            sharpenEffect->setInt("screen", 0);
+        }
+
+        else if (isEdgeEnabled)
+        {
+            edgeDetEffect->use();
+            edgeDetEffect->setInt("screen", 0);
+        }
+
+        else if (isGreyScaleEnabled)
+        {
+            greyScaleEffect->use();
+            greyScaleEffect->setInt("screen", 0);
+        }
+
+        else if(isvignetteEnabled)
+        {
+            vignetteEffect->use();
+            vignetteEffect->setInt("screen", 0);
+        }
+
+        else if (isLensDistEnabled)
+        {
+            lensDistEffect->use();
+            lensDistEffect->setInt("screen", 0);
+            lensDistEffect->setFloat("strength", lensDistStrength);
+        }
+    
+        else if (isFilmGrainEnabled)
+        {
+            filmGrainEffect->use();
+            filmGrainEffect->setInt("screen", 0);
+            filmGrainEffect->setFloat("time", time.frame);
+            filmGrainEffect->setFloat("strength", filmGrainStrength);
+        }
+  
 
         glDisable(GL_DEPTH_TEST);
     
@@ -235,12 +282,9 @@ void Scene::Render(void)
     
         glBindVertexArray(fullscreen_quad.vao);
 
-        hdrEffect->use();
-        hdrEffect->setInt("hdrBuffer", 0);
+      
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, colorBuffer);
-        // glActiveTexture(GL_TEXTURE0);
-        // glBindTexture(GL_TEXTURE_2D, fboTexture);
         glDrawArrays(GL_TRIANGLES, 0, 6);
  
      }
@@ -283,9 +327,19 @@ void Scene::Debug(void)
 
     /* build debug ui here */
 
-    ImGui::SliderFloat3("Ambient", &debug.ambient[0], 0.01f, 1.0f);
-    ImGui::SliderFloat3("Diffuse", &debug.diffuse[0], 0.01f, 1.0f);
-    ImGui::SliderFloat3("Specular", &debug.specular[0], 0.01f, 1.0f);
+    ImGui::Checkbox("Blur Effect", &isBlurEnabled);
+    ImGui::Checkbox("Hdr Effect", &isHdrEnabled);
+    ImGui::Checkbox("Vignette Effect", &isvignetteEnabled);
+    ImGui::Checkbox("Lens Distorion Effect", &isLensDistEnabled);
+    ImGui::Checkbox("Film Grain Effect", &isFilmGrainEnabled);
+
+    ImGui::Checkbox("Grey Scale Effect", &isGreyScaleEnabled);
+    ImGui::Checkbox("Edge Detection Effect", &isEdgeEnabled);
+    ImGui::Checkbox("Sharpen Effect", &isSharpenEnabled);
+
+    ImGui::SliderFloat("Blur Strength", &blurStrength, 0, 18);
+    ImGui::SliderFloat("Film Grain Strength", &filmGrainStrength, 0, 3);
+    ImGui::SliderFloat("Lens Distortion Strength", &lensDistStrength, 0, 2);
 
     ImGui::Image(
         // (void*)(intptr_t)fboTexture,

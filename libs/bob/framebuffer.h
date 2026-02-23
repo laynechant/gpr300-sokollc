@@ -1,7 +1,7 @@
 #pragma once 
 
 #include <iostream>
-#include "batteries/opengl.h"
+
 
 namespace bob 
 {

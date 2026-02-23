@@ -15,7 +15,6 @@ void main()
  
   vec3 color = texture(screen, vs_texcoord).rgb; 
 
-  //float gray = (color.r + color.g + color.b) / 3.0; 
   float average = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
   FragColor = vec4(vec3(average), 1.0);
 }
