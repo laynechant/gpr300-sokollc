@@ -8,3 +8,5 @@ add_subdirectory(assignment1)
 add_subdirectory(windwaker)
 
 add_subdirectory(doubledash)
+
+add_subdirectory(assignment2)

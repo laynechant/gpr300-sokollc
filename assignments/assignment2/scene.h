@@ -9,7 +9,6 @@
 #include "ew/shader.h"
 #include "ew/texture.h"
 #include "../libs/bob/framebuffer.h"
-#include "ew/mesh.h"
 
 class Scene final : public batteries::Scene
 {
@@ -22,8 +21,12 @@ class Scene final : public batteries::Scene
     void Debug(void);
 
   private:
+    void CreateDepthBuffer();
+    void CreateFrameBuffer();
     std::unique_ptr<ew::Model> suzanne;
     std::unique_ptr<ew::Shader> blinnphong;
+    std::unique_ptr<ew::Shader> depth;
+     std::unique_ptr<ew::Shader> shadowMap;
 
     // Post processing effects
     std::unique_ptr<ew::Shader> blurEffect;
@@ -50,6 +53,11 @@ class Scene final : public batteries::Scene
     unsigned int hdrFBO;
     unsigned int colorBuffer;
 
+    // depth buffer
+    unsigned int shadowFbo;
+    unsigned int shadowDepth;
+
+
     float filmGrainStrength;
     float lensDistStrength; 
     float blurStrength;
@@ -62,4 +70,7 @@ class Scene final : public batteries::Scene
     bool isSharpenEnabled;
     bool isEdgeEnabled;
     bool isGreyScaleEnabled;
+
+        
+    ew::Mesh plane; 
 };
