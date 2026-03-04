@@ -149,6 +149,7 @@ auto matrix = glm::mat4(1.0f);
 void Scene::Render(void)
 {
    
+    
     glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
 
     //glBindFramebuffer(GL_FRAMEBUFFER, depthBuffer)

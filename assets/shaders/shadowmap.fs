@@ -7,7 +7,8 @@ out vec4 FragColor;
 in vec3 vs_position;
 in vec3 vs_normal;
 in vec2 vs_texcoord;
-in vec4 light_view_proj;
+// fragPosLghtSpace
+in vec4 vs_light_proj_pos;
 
 
 struct Light{
@@ -15,6 +16,7 @@ struct Light{
   vec3 position;
 };
 
+// might be able to remove this stuff 
 struct Pallete{
   vec3 color1;
   vec3 color2;
@@ -27,16 +29,23 @@ struct Material{
   float shininess;
 };
 
-uniform vec4 vs_light_proj_pos;
-uniform vec3 camera;
-uniform Light light;
-uniform Material material;
-uniform float alpha;
+
 uniform sampler2D _MainTex; 
 uniform sampler2D zatoon;
 uniform sampler2D shadowMap;
-uniform Pallete pal;
 uniform float bias; 
+
+
+// bloat??
+uniform vec3 camera;
+uniform Light light;
+
+
+uniform Material material;
+uniform float alpha;
+
+uniform Pallete pal;
+
 
 
 float shadowCalculation(vec4 fragPosLightSpace)
@@ -80,7 +89,8 @@ vec3 toon(vec3 normal, vec3 frag_pos, Light light) {
   //Our uncolored lighting model
   vec3 lighting = diffuse * material.diffuse + specular * material.specular + material.ambient;
 
-  return out_color;
+  //return out_color;
+ return lighting * light.color;
 }
 
 void main()
@@ -98,6 +108,7 @@ void main()
   final_color *= (1.0 - shadow);
   //light_color *= (1.0 - shadow);
 
+  //FragColor = vec4(1.0, 0.0, 0.0, 1.0);
   FragColor = vec4(final_color, 1.0);
   //vs_position = vec3(model) * vec4(vs_position, 1.0f);
   //vs_light_proj_pos = light_view_proj * vec4(vs_position, 1.0f);

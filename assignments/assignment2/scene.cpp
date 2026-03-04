@@ -24,8 +24,9 @@ glm::vec3 lightColor = glm::vec3(1.0f);
 
 struct{
     float alpha = 128.0f;
-    float bias = 0.2f;
-    glm::vec3  ambient = {1.0f, 1.0f, 1.0f};
+    float bias = 0.008f;
+    glm::vec3  ambient = {0.3f, 0.3f, 0.3f};
+    //glm::vec3  ambient = {0.1f, 0.1f, 0.1f};
     glm::vec3  diffuse = {0.5f, 0.5f, 0.5f};
     glm::vec3  specular = {0.5f, 0.5f, 0.5f};
 
@@ -78,11 +79,14 @@ struct FullScreenQuad
 
 Scene::Scene()
 {
-    std::filesystem::current_path("C:/Users/layne/Desktop/Graphics/gpr300-sokollc");
+    // dont need this on desktop but its needed on my laptop ?!?!
+    //std::filesystem::current_path("C:/Users/layne/Desktop/Graphics/gpr300-sokollc");
+
 
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
 
-    blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/toon.fs");
+    // default rendering shader
+    toon = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/toon.fs");
 
         light = {
         .brightness = 1.0f,
@@ -92,20 +96,13 @@ Scene::Scene()
 
 
     shadowMap = std::make_unique<ew::Shader>("assets/shaders/default_shadowmap.vs", "assets/shaders/shadowmap.fs");
-    
+
     depth = std::make_unique<ew::Shader>("assets/shaders/depth.vs", "assets/shaders/depth.fs");
 
 
-    blurEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/blur.fs");
-    hdrEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/hdr.fs");
-    sharpenEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/sharpen.fs");
-    edgeDetEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/edge.fs");
-    greyScaleEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/greyscale.fs");
-    vignetteEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/vignette.fs");
-    lensDistEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/lensdistortion.fs");
-    filmGrainEffect = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/filmgrain.fs");
 
     brickTexture = std::make_unique<ew::Texture>("assets/textures/bricks.jpg");
+
 
     lightColor = light.color;
 
@@ -116,24 +113,15 @@ Scene::Scene()
 
     };
 
-    isBlurEnabled = false;
-    isHdrEnabled = false;
-    isvignetteEnabled = false; 
-    isLensDistEnabled = false; 
-    isFilmGrainEnabled = false; 
-    isSharpenEnabled = false; 
-    isEdgeEnabled = false; 
-    isGreyScaleEnabled = false;
 
-    filmGrainStrength = 0.5f;
-    lensDistStrength = 1.5f;
-    blurStrength = 16.0f;
-
+    
     fullscreen_quad.Initalize();    
    
     
     CreateDepthBuffer();
+ 
     CreateFrameBuffer();
+    
 
     plane.load(ew::createPlane(100.0f, 100.0f, 10));
 }
@@ -142,6 +130,7 @@ Scene::~Scene()
 {
 }
 
+// correct
 void Scene::CreateFrameBuffer()
 {
     glCreateFramebuffers(1, &frameBuffer);
@@ -186,7 +175,7 @@ void Scene::CreateFrameBuffer()
 
 void Scene::CreateDepthBuffer()
 {
-      glCreateFramebuffers(1, &shadowFbo);
+    glCreateFramebuffers(1, &shadowFbo);
     glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo);
     
     {
@@ -196,14 +185,14 @@ void Scene::CreateDepthBuffer()
         glBindTexture(GL_TEXTURE_2D, shadowDepth);
 
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 800, 600, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 1024, 1024, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowDepth, 0); 
 
-        glDrawBuffers(0, nullptr);
+        glDrawBuffer(GL_NONE);
         glReadBuffer(GL_NONE);       
         
         //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, shadowDepth, 0);  
@@ -235,25 +224,35 @@ auto matrix = glm::mat4(1.0f);
 void Scene::Render(void)
 {
    
-    //glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
 
-     // render scene from light (world must exist)
+    /* 
+        Todo: 
+        Make Suzzane thats rendered in shadowDepth render to fullscreen quad
+        add texture to the plane
+        fix shadow for suzzane
+    */
+
+    /* 
+        Steps for rendering 
+        1. render depth to the scene
+        2. render scene normally
+        
+
+        Shaders should be fine as is
+    */
+
+     // render to the depth buffer
+     glViewport(0, 0, 800, 600);
      glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo);
+     glClear(GL_DEPTH_BUFFER_BIT);
+
+     const auto light_proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.1f, 100.0f);
+     const auto light_view = glm::lookAt(light.position, glm::vec3(0.0), glm::vec3(0.0f, -1.0f, 0.0f));
+     const auto light_view_proj = light_proj * light_view;
+     const auto projection = camera.Projection();
      {
 
-        const auto light_proj = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
-        const auto light_view = glm::lookAt(light.position, glm::vec3(0.0), glm::vec3(0.0f, -1.0f, 0.0f));
-        const auto light_view_proj = light_proj * light_view;
-
-
-        // create the render details
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
-        glEnable(GL_DEPTH_TEST);
-
-        glViewport(0, 0, 800, 600);
-
-        glClear(GL_DEPTH_BUFFER_BIT);
+      
 
 
         depth->use();
@@ -264,164 +263,117 @@ void Scene::Render(void)
 
         suzanne->draw();
 
-        // scene matrices
-        
+        // create the render details
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
+        glEnable(GL_DEPTH_TEST);
+  
     }
-  
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-   
-
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glEnable(GL_DEPTH_TEST);
 
 
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, brickTexture->getID());
+    // render scene as we normally do
+    {    
 
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, shadowDepth);
-
-
-    const auto view_proj = camera.Projection() * camera.View();
-   
-    shadowMap->use();
-
-    shadowMap->setInt("zatoon", 1);
-    shadowMap->setInt("shadowMap", 1);
-    shadowMap->setMat4("model", matrix);
-    shadowMap->setMat4("view_proj", view_proj);
-    shadowMap->setVec3("camera", camera.position);
-    shadowMap->setVec3("light.position", light.position);
-    shadowMap->setVec3("light.color", light.color);
-    shadowMap->setVec3("material.ambient", debug.ambient);
-    shadowMap->setVec3("material.diffuse", debug.diffuse);
-    shadowMap->setVec3("material.specular", debug.specular);
-    shadowMap->setFloat("material.shininess", 32.0f);
-    shadowMap->setFloat("alpha", debug.alpha);
-    shadowMap->setVec3("pallete.color1", pallete.color1);
-    shadowMap->setVec3("pallete.color2", pallete.color2);
-
-    shadowMap->setFloat("material.shininess", 32.0f);
-    shadowMap->setFloat("alpha", debug.alpha);
-
-
-    // scene matrices
-
-
-    blinnphong->use();
-    blinnphong->setInt("_MainTex", 0);
-
-    // scene matrices
-    blinnphong->setInt("zatoon", 1);
-    blinnphong->setMat4("model", matrix);
-    blinnphong->setMat4("view_proj", view_proj);
-    blinnphong->setVec3("camera", camera.position);
-    blinnphong->setVec3("light.position", light.position);
-    blinnphong->setVec3("light.color", light.color);
-    blinnphong->setVec3("material.ambient", debug.ambient);
-    blinnphong->setVec3("material.diffuse", debug.diffuse);
-    blinnphong->setVec3("material.specular", debug.specular);
-    blinnphong->setFloat("material.shininess", 32.0f);
-    blinnphong->setFloat("alpha", debug.alpha);
-    blinnphong->setVec3("pallete.color1", pallete.color1);
-    blinnphong->setVec3("pallete.color1", pallete.color2);
-
-    blinnphong->setFloat("material.shininess", 32.0f);
-    blinnphong->setFloat("alpha", debug.alpha);
+        // then render scene as we normally would
+        //glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     
-    // draw suzanne
-    suzanne->draw();
 
-    const auto plane_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0));
-    //blinnphong->setMat4("model", plane_matrix);
-    plane.draw();
-
-    // for the full screen quad
- 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    {
-        if(isBlurEnabled)
-        { 
-
-            blurEffect->use();
-            blurEffect->setInt("screen", 0);
-            blurEffect->setFloat("strength", blurStrength);
-        }
-
-        else if (isHdrEnabled)
-        {
-             hdrEffect->use();
-             hdrEffect->setInt("hdrBuffer", 0);
-        }
-
-        else if (isSharpenEnabled)
-        {
-            sharpenEffect->use();
-            sharpenEffect->setInt("screen", 0);
-        }
-
-        else if (isEdgeEnabled)
-        {
-            edgeDetEffect->use();
-            edgeDetEffect->setInt("screen", 0);
-        }
-
-        else if (isGreyScaleEnabled)
-        {
-            greyScaleEffect->use();
-            greyScaleEffect->setInt("screen", 0);
-        }
-
-        else if(isvignetteEnabled)
-        {
-            vignetteEffect->use();
-            vignetteEffect->setInt("screen", 0);
-        }
-
-        else if (isLensDistEnabled)
-        {
-            lensDistEffect->use();
-            lensDistEffect->setInt("screen", 0);
-            lensDistEffect->setFloat("strength", lensDistStrength);
-        }
-    
-        else if (isFilmGrainEnabled)
-        {
-            filmGrainEffect->use();
-            filmGrainEffect->setInt("screen", 0);
-            filmGrainEffect->setFloat("time", time.frame);
-            filmGrainEffect->setFloat("strength", filmGrainStrength);
-        }
-  
-
-        glDisable(GL_DEPTH_TEST);
-    
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glEnable(GL_DEPTH_TEST);
+
+
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, brickTexture->getID());
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, shadowDepth);
+
+
+
+        const auto plane_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0));
+        const auto view_proj = camera.Projection() * camera.View();
+
+   
+        shadowMap->use();
+
+        shadowMap->setInt("zatoon", 0);
+        shadowMap->setInt("shadowMap", 1);
+        
+        shadowMap->setMat4("model", matrix);
+        shadowMap->setMat4("projection",  projection);
+        shadowMap->setMat4("view_proj", view_proj);
+        shadowMap->setMat4("light_view_proj", light_view_proj);
+        shadowMap->setVec3("light.position", light.position);
+        shadowMap->setVec3("camera", camera.position);
+
+
+        shadowMap->setVec3("light.color", light.color);
+        shadowMap->setVec3("material.ambient", debug.ambient);
+        shadowMap->setVec3("material.diffuse", debug.diffuse);
+        shadowMap->setVec3("material.specular", debug.specular);
+        shadowMap->setFloat("material.shininess", 32.0f);
+        shadowMap->setFloat("alpha", debug.alpha);
+        shadowMap->setVec3("pallete.color1", pallete.color1);
+        shadowMap->setVec3("pallete.color2", pallete.color2);
     
-        glBindVertexArray(fullscreen_quad.vao);
+        shadowMap->setFloat("material.shininess", 32.0f);
+        shadowMap->setFloat("alpha", debug.alpha);
+        shadowMap->setFloat("bias", debug.bias);
+      
+        suzanne->draw();
+
+        shadowMap->setMat4("model", plane_matrix);
+        plane.draw();
+
+    }
+
+    // render the full screen quad
+ 
+
+
+    // {
+        
+
+    //     // disable depth testing
+    //     //glDisable(GL_DEPTH_TEST);
+    
+    //     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    //     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    //     glBindVertexArray(fullscreen_quad.vao);
+
+    //     toon->setInt("_MainTex", 0);
+    //     toon->setInt("zatoon", 1);
+
+    //     // i dont think i want to draw it here
+    //     // i need one suzzane not multiple 
+    //     // maybe use the one thats being drawn on framebuffer
+    //     // or shadowDepth
+    //     //suzanne->draw();
+        
+    //     // figure out want we want to display on this full screen quad 
+    //     // the size of the quad is off too 
+    //     glActiveTexture(GL_TEXTURE0);
+    //     glBindTexture(GL_TEXTURE_2D, colorBuffer);
+    //     glDrawArrays(GL_TRIANGLES, 0, 6);
 
       
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, colorBuffer);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
  
-     }
+    //  }
 
 
     
-      glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 }
 
 void Scene::Debug(void)
@@ -461,25 +413,7 @@ void Scene::Debug(void)
 
     /* build debug ui here */
 
-    ImGui::Checkbox("Blur Effect", &isBlurEnabled);
-    ImGui::Checkbox("Hdr Effect", &isHdrEnabled);
-    ImGui::Checkbox("Vignette Effect", &isvignetteEnabled);
-    ImGui::Checkbox("Lens Distorion Effect", &isLensDistEnabled);
-    ImGui::Checkbox("Film Grain Effect", &isFilmGrainEnabled);
 
-    ImGui::Checkbox("Grey Scale Effect", &isGreyScaleEnabled);
-    ImGui::Checkbox("Edge Detection Effect", &isEdgeEnabled);
-    ImGui::Checkbox("Sharpen Effect", &isSharpenEnabled);
-
-    ImGui::SliderFloat("Blur Strength", &blurStrength, 0, 18);
-    ImGui::SliderFloat("Film Grain Strength", &filmGrainStrength, 0, 3);
-    ImGui::SliderFloat("Lens Distortion Strength", &lensDistStrength, 0, 2);
-
-    
-    ImGui::Image(
-        (void*)(intptr_t)frameBuffer,
-        ImVec2(400, 300),
-        ImVec2(0, 1), ImVec2(1, 0));
 
     ImGui::Image(
 
@@ -487,10 +421,5 @@ void Scene::Debug(void)
         ImVec2(400, 300),
         ImVec2(0, 1), ImVec2(1, 0));
 
-    ImGui::Image(
-        
-        (void*)(intptr_t)fboDepth,
-        ImVec2(400, 300),
-        ImVec2(0, 1), ImVec2(1, 0));
     ImGui::End();
 }

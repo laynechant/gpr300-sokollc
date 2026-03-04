@@ -27,11 +27,13 @@ struct Material{
 
 uniform vec3 camera;
 uniform Light light;
-uniform Material material;
-uniform float alpha;
 uniform sampler2D _MainTex; 
 uniform sampler2D zatoon;
 uniform sampler2D shadowMap;
+
+
+uniform Material material;
+uniform float alpha;
 uniform Pallete pal;
 
 

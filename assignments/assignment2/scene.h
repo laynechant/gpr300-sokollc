@@ -24,19 +24,10 @@ class Scene final : public batteries::Scene
     void CreateDepthBuffer();
     void CreateFrameBuffer();
     std::unique_ptr<ew::Model> suzanne;
-    std::unique_ptr<ew::Shader> blinnphong;
+    std::unique_ptr<ew::Shader> toon;
     std::unique_ptr<ew::Shader> depth;
-     std::unique_ptr<ew::Shader> shadowMap;
+    std::unique_ptr<ew::Shader> shadowMap;
 
-    // Post processing effects
-    std::unique_ptr<ew::Shader> blurEffect;
-    std::unique_ptr<ew::Shader> hdrEffect;
-    std::unique_ptr<ew::Shader> sharpenEffect;
-    std::unique_ptr<ew::Shader> edgeDetEffect;
-    std::unique_ptr<ew::Shader> greyScaleEffect;
-    std::unique_ptr<ew::Shader> vignetteEffect;
-    std::unique_ptr<ew::Shader> lensDistEffect;
-    std::unique_ptr<ew::Shader> filmGrainEffect;
     
     batteries::light_t light;
 
@@ -56,21 +47,6 @@ class Scene final : public batteries::Scene
     // depth buffer
     unsigned int shadowFbo;
     unsigned int shadowDepth;
-
-
-    float filmGrainStrength;
-    float lensDistStrength; 
-    float blurStrength;
-
-    bool isBlurEnabled;
-    bool isHdrEnabled;
-    bool isvignetteEnabled;
-    bool isLensDistEnabled;
-    bool isFilmGrainEnabled;
-    bool isSharpenEnabled;
-    bool isEdgeEnabled;
-    bool isGreyScaleEnabled;
-
         
     ew::Mesh plane; 
 };

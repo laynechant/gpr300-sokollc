@@ -6,8 +6,10 @@ layout(location = 1) in vec3 in_normal;
 layout(location = 2) in vec2 in_texcoord;
 
 // uniforms
+// view
 uniform mat4 view_proj;
 uniform mat4 model;
+// light space
 uniform mat4 light_view_proj;
 
 // varyings
@@ -21,8 +23,12 @@ void main()
   vs_position = vec3(model * vec4(in_position, 1.0));
 
 
-  vs_normal = in_normal;
+  //vs_normal = in_normal;
+  // learn opengl had this
+  vs_normal = transpose(inverse(mat3(model))) * in_normal;
+
   vs_texcoord = in_texcoord;
+
   vs_light_proj_pos = light_view_proj * vec4(vs_position, 1.0);
   gl_Position = view_proj * vec4(vs_position, 1.0);
 }
