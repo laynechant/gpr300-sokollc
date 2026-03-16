@@ -33,10 +33,10 @@ struct Material{
 uniform sampler2D _MainTex; 
 uniform sampler2D zatoon;
 uniform sampler2D shadowMap;
-uniform float bias; 
+uniform float minBias; 
+uniform float maxBias; 
 
 
-// bloat??
 uniform vec3 camera;
 uniform Light light;
 
@@ -50,7 +50,7 @@ uniform Pallete pal;
 
 float shadowCalculation(vec4 fragPosLightSpace)
 {
-  float shadow = 0.25;
+  float shadow = 0.0f;
 
   vec3 proj_coords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 
@@ -60,13 +60,18 @@ float shadowCalculation(vec4 fragPosLightSpace)
   float closest = texture(shadowMap, proj_coords.xy).r;
 
   float current = proj_coords.z;
-  shadow = (current - bias) > closest ? 1.0 : 0.0;
+  vec3 light_dir = normalize(light.position);
+  vec3 normal = normalize(vs_normal);
+
+  float slope = clamp(1.0 - dot(normal, light_dir), 0.0f, 1.0f);
+  float slopeBias = mix(minBias, maxBias, slope);
+
+  shadow = (current - slopeBias) > closest ? 1.0 : 0.0;
 
   return shadow;
 }
 
 vec3 toon(vec3 normal, vec3 frag_pos, Light light) {
-  float angle = normalize(dot(normal, light.position));
 
   vec3 view_dir = normalize(camera - frag_pos);
   vec3 light_dir = normalize(light.position - frag_pos);
@@ -81,7 +86,6 @@ vec3 toon(vec3 normal, vec3 frag_pos, Light light) {
   specular = pow(specular, alpha * material.shininess);
 
   float NdotL = (dot(normal, light_dir) * 1.0) * 0.5;
-  //float NdotH = (dot(normal, light_dir) + 1.0) * 0.5;
 
   vec3 gradient = texture(zatoon, vec2(NdotL, NdotL)).rgb;
 
@@ -96,21 +100,13 @@ vec3 toon(vec3 normal, vec3 frag_pos, Light light) {
 void main()
 {
   vec3 lighting = toon(vs_normal, vs_position, light);
-  //vec3 object_color = vs_normal.rgb * 0.5 + 0.5;
-  
+
   vec3 final_color = lighting + material.ambient;
-  //vec3 result = lighting * object_color;
-  
-  //vs_texcoord = in_texcoord;
 
   float shadow = shadowCalculation(vs_light_proj_pos);
 
   final_color *= (1.0 - shadow);
-  //light_color *= (1.0 - shadow);
 
-  //FragColor = vec4(1.0, 0.0, 0.0, 1.0);
   FragColor = vec4(final_color, 1.0);
-  //vs_position = vec3(model) * vec4(vs_position, 1.0f);
-  //vs_light_proj_pos = light_view_proj * vec4(vs_position, 1.0f);
-  //FragColor = texture(_MainTex, vs_texcoord);
+
 }

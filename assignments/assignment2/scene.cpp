@@ -24,9 +24,9 @@ glm::vec3 lightColor = glm::vec3(1.0f);
 
 struct{
     float alpha = 128.0f;
-    float bias = 0.008f;
+    float minBias = 0.005f;
+    float maxBias = 0.05f;
     glm::vec3  ambient = {0.3f, 0.3f, 0.3f};
-    //glm::vec3  ambient = {0.1f, 0.1f, 0.1f};
     glm::vec3  diffuse = {0.5f, 0.5f, 0.5f};
     glm::vec3  specular = {0.5f, 0.5f, 0.5f};
 
@@ -80,7 +80,7 @@ struct FullScreenQuad
 Scene::Scene()
 {
     // dont need this on desktop but its needed on my laptop ?!?!
-    //std::filesystem::current_path("C:/Users/layne/Desktop/Graphics/gpr300-sokollc");
+    std::filesystem::current_path("C:/Users/layne/Desktop/Graphics/gpr300-sokollc");
 
 
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
@@ -141,8 +141,6 @@ void Scene::CreateFrameBuffer()
         // color buffer
         glGenTextures(1, &colorBuffer);
         glBindTexture(GL_TEXTURE_2D, colorBuffer);
-        //256
-        //224
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 800, 600, 0, GL_RGBA, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -195,8 +193,6 @@ void Scene::CreateDepthBuffer()
         glDrawBuffer(GL_NONE);
         glReadBuffer(GL_NONE);       
         
-        //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, shadowDepth, 0);  
-
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
@@ -223,26 +219,9 @@ auto matrix = glm::mat4(1.0f);
 
 void Scene::Render(void)
 {
-   
-
-    /* 
-        Todo: 
-        Make Suzzane thats rendered in shadowDepth render to fullscreen quad
-        add texture to the plane
-        fix shadow for suzzane
-    */
-
-    /* 
-        Steps for rendering 
-        1. render depth to the scene
-        2. render scene normally
-        
-
-        Shaders should be fine as is
-    */
 
      // render to the depth buffer
-     glViewport(0, 0, 800, 600);
+     glViewport(0, 0, 1024, 1024);
      glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo);
      glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -276,7 +255,7 @@ void Scene::Render(void)
     {    
 
         // then render scene as we normally would
-        //glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+        glViewport(0, 0, 800, 600);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     
@@ -328,52 +307,15 @@ void Scene::Render(void)
     
         shadowMap->setFloat("material.shininess", 32.0f);
         shadowMap->setFloat("alpha", debug.alpha);
-        shadowMap->setFloat("bias", debug.bias);
-      
+        shadowMap->setFloat("minBias", debug.minBias);
+        shadowMap->setFloat("maxBias", debug.maxBias);
+
         suzanne->draw();
 
         shadowMap->setMat4("model", plane_matrix);
         plane.draw();
 
     }
-
-    // render the full screen quad
- 
-
-
-    // {
-        
-
-    //     // disable depth testing
-    //     //glDisable(GL_DEPTH_TEST);
-    
-    //     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    //     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    //     glBindVertexArray(fullscreen_quad.vao);
-
-    //     toon->setInt("_MainTex", 0);
-    //     toon->setInt("zatoon", 1);
-
-    //     // i dont think i want to draw it here
-    //     // i need one suzzane not multiple 
-    //     // maybe use the one thats being drawn on framebuffer
-    //     // or shadowDepth
-    //     //suzanne->draw();
-        
-    //     // figure out want we want to display on this full screen quad 
-    //     // the size of the quad is off too 
-    //     glActiveTexture(GL_TEXTURE0);
-    //     glBindTexture(GL_TEXTURE_2D, colorBuffer);
-    //     glDrawArrays(GL_TRIANGLES, 0, 6);
-
-      
- 
-    //  }
-
-
-    
-
 }
 
 void Scene::Debug(void)
@@ -409,11 +351,12 @@ void Scene::Debug(void)
     ImGui::SliderFloat("Time Factor", &time.factor, 0.0f, 10.0f);
     ImGui::ColorEdit3("Light Color", &lightColor.x);
 
+    ImGui::SliderFloat("Min Bias", &debug.minBias, 0.0f, 0.05f);
+   ImGui::SliderFloat("Max Bias", &debug.maxBias, 0.0f, 0.05f);
+
     light.color = lightColor;
 
     /* build debug ui here */
-
-
 
     ImGui::Image(
 
