@@ -61,9 +61,16 @@ namespace ew {
 		glBindVertexArray(m_vao);
 		switch (drawMode)
 		{
-		case DrawMode::TRIANGLES:
+		case DrawMode::TRIANGLES: {
+			
+			
+			//glDrawElementsInstanced(GL_TRIANGLES, m_numIndices, GL_UNSIGNED_INT, NULL);
+			
 			glDrawElements(GL_TRIANGLES, m_numIndices, GL_UNSIGNED_INT, NULL);
+			
+	
 			break;
+		}
 		case DrawMode::POINTS:
 			glDrawArrays(GL_POINTS, 0, m_numVertices);
 			break;
