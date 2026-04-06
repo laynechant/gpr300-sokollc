@@ -91,14 +91,7 @@ struct Framebuffer
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, normal, 0);  
 
-        // glGenTextures(1, &material);
-        // glBindTexture(GL_TEXTURE_2D, material);
-
-        // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, kFramebufferWidth, kFramebufferHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, material, 0);  
-
+    
         // albedo attachment
 
         glGenTextures(1, &albedo);
@@ -109,6 +102,15 @@ struct Framebuffer
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, albedo, 0);  
 
+        // material attachment
+        glGenTextures(1, &material);
+        glBindTexture(GL_TEXTURE_2D, material);
+   
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, kFramebufferWidth, kFramebufferHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, material, 0);
+
         // depth attachment
         glGenTextures(1, &depth);
         glBindTexture(GL_TEXTURE_2D, depth);
@@ -116,7 +118,8 @@ struct Framebuffer
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, kFramebufferWidth, kFramebufferHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth, 0);  
+        // was a regular depth attachment
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depth, 0);  
 
         GLenum array[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
 
@@ -201,7 +204,6 @@ Scene::Scene()
     
     texture = std::make_unique<ew::Texture>("assets/textures/bricks.jpg");
 
-    //std::cout << "print";
 
     sphere.load(ew::createSphere(1.0f, 8));
 
@@ -322,17 +324,14 @@ void Scene::Render(void)
 
         blinnphong->use();
 
-
-
-
         // render spheres
-
     
         auto sphereMatrix = glm::translate(glm::mat4(1.0f), light_instances[0].position);
 
         blinnphong->setMat4("view_proj", view_proj);
         blinnphong->setVec3("camera_position", camera.position);
         blinnphong->setMat4("model", sphereMatrix);
+
 
         blinnphong->setInt("g_position", 0);
         blinnphong->setInt("g_normal", 1);
@@ -421,7 +420,7 @@ void Scene::Debug(void)
     if (ImGui::CollapsingHeader("Lights"))
     {
         ImGui::Checkbox("Draw Volumes", &debug.draw_light_volume);
-        ImGui::SliderFloat("Light Radisu", &debug.light_radius, 1.0f, 100.0f);
+        ImGui::SliderFloat("Light Radius", &debug.light_radius, 1.0f, 100.0f);
     }
 
     if (ImGui::CollapsingHeader("Material"))
@@ -437,17 +436,22 @@ void Scene::Debug(void)
         ImVec2 uv_min(0.0f, 1.0f);
         ImVec2 uv_max(1.0f, 0.0f);
 
+        // works
         ImGui::Text("Lighting:");
         ImGui::Image((ImTextureID)(intptr_t)lightvolumebuffer.color, ImVec2(200, 150), uv_min, uv_max);
 
+        // works
         ImGui::Text("Albedo:");
         ImGui::Image((ImTextureID)(intptr_t)framebuffer.albedo, ImVec2(200, 150), uv_min, uv_max);
 
+        // works
         ImGui::Text("Material:");
         ImGui::Image((ImTextureID)(intptr_t)framebuffer.material, ImVec2(200, 150), uv_min, uv_max);
 
+        // works
         ImGui::Text("Position:");
         ImGui::Image((ImTextureID)(intptr_t)framebuffer.position, ImVec2(200, 150), uv_min, uv_max);
+
 
         ImGui::Text("Normal:");
         ImGui::Image((ImTextureID)(intptr_t)framebuffer.normal, ImVec2(200, 150), uv_min, uv_max);
