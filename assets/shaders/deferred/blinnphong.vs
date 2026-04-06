@@ -13,6 +13,6 @@ uniform mat4 model;
 
 void main()
 {
-   vec4 world_position = model * vec4(in_position, 1.0);
+  vec4 world_position = model * vec4(in_position, 1.0);
   gl_Position = view_proj * world_position;
 }

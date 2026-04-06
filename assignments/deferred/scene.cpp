@@ -291,114 +291,117 @@ void Scene::Render(void)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // render volume lights
-    // glBindFramebuffer(GL_FRAMEBUFFER, lightvolumebuffer.fbo);
-    // {
+    glBindFramebuffer(GL_FRAMEBUFFER, lightvolumebuffer.fbo);
+    {
 
-    //     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    //     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
-    //     glEnable(GL_BLEND);
-    //     glBlendFunc(GL_ONE, GL_ONE);
-    //     glBlendEquation(GL_FUNC_ADD);
-
-    //     glDisable(GL_DEPTH_TEST);
-    //     glEnable(GL_CULL_FACE);
-    //     glCullFace(GL_BACK);
-
-    //     // send color attachments
-    //     glActiveTexture(GL_TEXTURE0);
-    //     glBindTexture(GL_TEXTURE_2D, framebuffer.position);
-
-    //     glActiveTexture(GL_TEXTURE1);
-    //     glBindTexture(GL_TEXTURE_2D, framebuffer.normal);
-
-    //     glActiveTexture(GL_TEXTURE2);
-    //     glBindTexture(GL_TEXTURE_2D, framebuffer.albedo);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-    //     glActiveTexture(GL_TEXTURE3);
-    //     glBindTexture(GL_TEXTURE_2D, framebuffer.material);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE);
+        glBlendEquation(GL_FUNC_ADD);
 
-    //     blinnphong->use();
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+
+        // send color attachments
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, framebuffer.position);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, framebuffer.normal);
+
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, framebuffer.albedo);
+
+
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, framebuffer.material);
+
+        blinnphong->use();
 
 
 
 
-    //     // render spheres
+        // render spheres
 
     
-    //     auto sphereMatrix = glm::translate(glm::mat4(1.0f), light_instances[0].position);
+        auto sphereMatrix = glm::translate(glm::mat4(1.0f), light_instances[0].position);
 
-    //     blinnphong->setMat4("view_proj", view_proj);
-    //     blinnphong->setVec3("camera_position", camera.position);
-    //     blinnphong->setMat4("model", sphereMatrix);
+        blinnphong->setMat4("view_proj", view_proj);
+        blinnphong->setVec3("camera_position", camera.position);
+        blinnphong->setMat4("model", sphereMatrix);
 
-    //     blinnphong->setInt("g_position", 0);
-    //     blinnphong->setInt("g_normal", 1);
-    //     blinnphong->setInt("g_albedo", 2);
-    //     blinnphong->setInt("g_material", 3);
-
-
-    //     blinnphong->setVec3("light.position", light_instances[0].position);
-    //     blinnphong->setVec3("light.color", light_instances[0].color);
+        blinnphong->setInt("g_position", 0);
+        blinnphong->setInt("g_normal", 1);
+        blinnphong->setInt("g_albedo", 2);
+        blinnphong->setInt("g_material", 3);
 
 
-    //     sphere.draw();
-        
-    // }
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        // blinnphong->setVec3("light.position", light_instances[0].position);
+        // blinnphong->setVec3("light.color", light_instances[0].color);
 
-    // { // render fullscreen quad
+        for (size_t i = 0; i < light_instances.size(); i++)
+        {
+            auto sphereMatrix = glm::translate(glm::mat4(1.0f), light_instances[i].position);
+
+            lightsphere->use();
+
+            lightsphere->setMat4("view_proj", view_proj);
+            lightsphere->setMat4("model", sphereMatrix);
+
+            lightsphere->setVec3("color", light_instances[i].color);
+
+            //lightsphere->setVec3("camera_position", camera.position);
+
+
+            sphere.draw();
+        }
+
+        //sphere.draw();
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    { // render fullscreen quad
     
-    //     noprocess->use();
-    //     noprocess->setInt("screen", 0);
+        noprocess->use();
+        noprocess->setInt("screen", 0);
 
-    //     glDisable(GL_BLEND);
-    //     glEnable(GL_DEPTH_TEST);
-    //     glEnable(GL_CULL_FACE);
-    //     glCullFace(GL_BACK);
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
 
-    //     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    //     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    //     glBindVertexArray(fullscreen_quad.vao);
-    //     glActiveTexture(GL_TEXTURE0);
-    //     glBindTexture(GL_TEXTURE_2D, framebuffer.position);
-    //     glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(fullscreen_quad.vao);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, framebuffer.position);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    // }
+    }
 
-    // { // render light sources
+    { // render light sources
 
-    //     // enable depth test
-    //     // loop through and render all
-    //     // lights onto the full screen quad
+        // enable depth test
+        // loop through and render all
+        // lights onto the full screen quad
 
-    //     //loo into glblit buffer
+        //loo into glblit buffer
 
 
-    //     glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.fbo);
-    //     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.fbo);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-    //     glBlitFramebuffer(0, 0, kFramebufferWidth, kFramebufferHeight, 0, 0, kFramebufferWidth, kFramebufferHeight, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_LINEAR);
-    //     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        glBlitFramebuffer(0, 0, kFramebufferWidth, kFramebufferHeight, 0, 0, kFramebufferWidth, kFramebufferHeight, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_LINEAR);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
    
-    //     for (size_t i = 0; i < light_instances.size(); i++)
-    //     {
-    //         auto sphereMatrix = glm::translate(glm::mat4(1.0f), light_instances[i].position);
-
-    //         lightsphere->use();
-
-    //         lightsphere->setMat4("view_proj", view_proj);
-    //         lightsphere->setVec3("camera_position", camera.position);
-    //         lightsphere->setMat4("model", sphereMatrix);
-
-
-    //         sphere.draw();
-    //     }
+   
         
-    // }
+    }
 }
 
 void Scene::Debug(void)

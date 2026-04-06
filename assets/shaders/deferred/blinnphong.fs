@@ -15,18 +15,25 @@ uniform vec3 camera;
 uniform Light light;
 uniform mat4 model;
 
-out vec4 FragLighting;
+out vec3 FragLighting;
 
 
-vec3 blinnPhong(vec3 position, vec3 normal, vec3 material)
+// vec3 blinnPhong(vec3 position, vec3 normal, vec3 material)
+// {
+//    // return vec3(0.0, 0.3, 0.7, 1.0);
+//    return vec3(0.0, 0.3, 0.7);
+// }
+
+vec3 blinnPhong()
 {
-    return vec3(0.0, 0.3, 0.7, 1.0);
+   // return vec3(0.0, 0.3, 0.7, 1.0);
+   return vec3(0.0, 0.3, 0.7);
 }
 
 void main()
 {
 
-    vec3 lighting = blinnPhong(g_position, g_normal, g_material);
+    vec3 lighting = blinnPhong();
     //FragLighting = vec4(light.color);
     FragLighting = lighting;
 }
