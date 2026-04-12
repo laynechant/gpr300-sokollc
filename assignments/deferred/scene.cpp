@@ -202,7 +202,6 @@ Scene::Scene()
     
     texture = std::make_unique<ew::Texture>("assets/textures/bricks.jpg");
 
-
     sphere.load(ew::createSphere(1.0f, 8));
 
     plane.load(ew::createPlane(20, 20, 10));
@@ -351,6 +350,7 @@ void Scene::Render(void)
             blinnphong->setMat4("model", sphereMatrix);
             blinnphong->setVec3("light.position", light_instances[i].position);
             blinnphong->setVec3("light.color", light_instances[i].color);
+            blinnphong->setFloat("light.radius", debug.light_radius);
             sphere.draw();
         }
     }
@@ -382,13 +382,6 @@ void Scene::Render(void)
 
     { // render light sources
 
-        // enable depth test
-        // loop through and render all
-        // lights onto the full screen quad
-
-        //loo into glblit buffer
-
-   
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.fbo);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 

@@ -15,6 +15,7 @@ struct Material{
 struct Light{
   vec3 color;
   vec3 position;
+  float radius;
 };
 
 uniform vec3 camera;
@@ -24,17 +25,12 @@ uniform mat4 model;
 out vec4 FragLighting;
 
 in vec2 vs_texcoord;
-// vec3 blinnPhong(vec3 position, vec3 normal, vec3 material)
-// {
-//    // return vec3(0.0, 0.3, 0.7, 1.0);
-//    return vec3(0.0, 0.3, 0.7);
-// }
 
-// vec3 blinnPhong()
-// {
-//    // return vec3(0.0, 0.3, 0.7, 1.0);
-//    return vec3(0.0, 0.3, 0.7);
-// }
+float attenuateLinear(float distance, float radius)
+{
+  return clamp((radius - distance) / radius, 0.0, 1.0);
+}
+
 
 vec3 blinnphong(vec3 normal, vec3 frag_pos, Material material) {
 
@@ -56,13 +52,15 @@ vec3 blinnphong(vec3 normal, vec3 frag_pos, Material material) {
   //Our uncolored lighting model
   vec3 lighting = (ambient + diffuse + specular);
 
+  // calculate the distance
+  float distance = length(light.position - frag_pos);
+  float attenuation = attenuateLinear(distance, light.radius);
+
+  lighting *= attenuation;
+
   return lighting;
 }
 
-// void main()
-// {
-//     FragLighting = vec4(1.0, 0.0, 0.0, 1.0);
-// }
 
 void main()
 {
@@ -77,6 +75,5 @@ void main()
     mat.specular = vec3(matSample.b);
     mat.shininess = matSample.a * 128.0;
 
-    FragLighting = vec4(blinnphong(normal, position, mat) * albedo, 1.0);
-    
-    }
+    FragLighting = vec4(blinnphong(normal, position, mat) * albedo, 1.0);    
+}
